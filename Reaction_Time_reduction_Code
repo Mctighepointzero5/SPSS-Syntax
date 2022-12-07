@@ -1,0 +1,161 @@
+*The code here was used to reduce reaction time data from a lab experiment. 
+**TXT files containing several thousand cells are compiled into 6 meaningful bits of data. 
+***This code was run on 129 TXT files as part of my Master's Thesis 
+
+*STEP 1 - IMPORT TXT FILE.
+*This first section of code would call the txt file from the working directory and label the collumns in a uniform way
+
+PRESERVE.
+SET DECIMAL DOT.
+
+GET DATA  /TYPE=TXT
+  /FILE="E:\ABER DATA Backup\ABER Data TXT\26 - 50\26 - 50 reaction time\O1NG050 reaction time.txt"
+  /ENCODING='UTF8'
+  /DELCASE=LINE
+  /DELIMITERS="\t "
+  /ARRANGEMENT=DELIMITED
+  /FIRSTCASE=1
+  /DATATYPEMIN PERCENTAGE=95.0
+  /VARIABLES=
+  V1 AUTO
+  part# AUTO
+  V3 AUTO
+  V4 AUTO
+  V5 AUTO
+  V6 AUTO
+  V7 AUTO
+  V8 AUTO
+  valid AUTO
+  affect AUTO
+  V11 AUTO
+  V12 AUTO
+  V13 AUTO
+  V14 AUTO
+  V15 AUTO
+  V16 AUTO
+  V17 AUTO
+  V18 AUTO
+  V19 AUTO
+  V20 AUTO
+  accuracy AUTO
+  reaction AUTO
+  /MAP.
+RESTORE.
+
+CACHE.
+EXECUTE.
+DATASET NAME DataSet1 WINDOW=FRONT.
+
+
+
+
+
+
+*STEP 2 - COLLECT frequency correct
+*This simple code collected frequency scores for correct responses on the attentiion task
+FREQUENCIES VARIABLES=accuracy
+  /ORDER=ANALYSIS.
+
+
+
+
+
+
+
+*STEP 3 omit problematic data. 
+**All incorrect responses were omitted as wel as reponses above or below criteria established in the literature. 
+
+*Set error trials to missing. 
+DO IF (accuracy = "E").
+RECODE reaction (ELSE=SYSMIS).
+END IF.
+EXECUTE.
+
+*Set fast outliers to missing.
+DO IF (reaction < 200).
+Recode reaction (ELSE=SYSMIS).
+END IF.
+EXECUTE.
+
+*Set slow outliers to missing.
+DO IF (reaction > 1000).
+Recode reaction (ELSE=SYSMIS).
+END IF.
+EXECUTE.
+
+
+
+
+
+
+*STEP 4 GET STATISTICS
+** These code would aggreate reaction time data that will be used to test order effects and cue validity effects.
+
+*order effect data.
+DATASET ACTIVATE DataSet1.
+DESCRIPTIVES VARIABLES=reaction
+  /STATISTICS=MEAN STDDEV MIN MAX.
+
+*Cue validity effect data.
+DATASET ACTIVATE DataSet1.
+MEANS TABLES=reaction BY valid
+  /CELLS=MEAN COUNT STDDEV.
+
+
+*frequency present after outlier omission.
+FREQUENCIES VARIABLES=reaction
+  /ORDER=ANALYSIS.
+
+
+
+
+
+
+
+
+
+*STEP 5
+This code will aggregate data by affect and valdidity and save dat files on my local device
+
+SORT CASES BY
+  valid (A) affect (A).
+EXECUTE.
+
+alter type reaction (f4.2).
+
+AGGREGATE
+  /OUTFILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\mike.sav'
+  /PRESORTED
+  /BREAK=part# valid affect
+/reaction = MEAN(reaction).
+
+*read in aggregated file.
+GET
+    FILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\mike.sav'.
+
+WRITE OUTFILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\mike.dat'
+  TABLE /ALL.
+EXECUTE.
+
+
+*read in data. 
+DATA LIST
+FILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\mike.dat' FIXED RECORDS = 6
+/part# 1-7 (A) IVAN 12-19 
+/IVHA 12-19  
+/IVNE 12-19 
+/VAN 12-19  
+/VHA 12-19 
+/VNE 12-19 .
+EXECUTE.
+
+FORMATS  IVAN to VNE (F8.2).
+EXECUTE.
+
+
+SAVE OUTFILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\data.sav'
+  /COMPRESSED.
+
+WRITE OUTFILE='E:\ABER DATA Backup\ABER Data TXT\1-25\Reaction time\reaction time reduced\O1NG050 reaction.dat'
+  TABLE /ALL.
+EXECUTE.
